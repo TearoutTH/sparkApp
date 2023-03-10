@@ -9,9 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SimpleApp {
-    private static final RulesParser rulesParser = new RulesParser("src/main/resources/rule.json", new ArrayList<>(), variables);
+    private static final RulesParser rulesParser = new RulesParser("src/main/resources/rule.json");
     public static void main(String[] args) {
-        String logFile = "src/main/resources/text.txt";
         String warehouseLocation = "/home/" + System.getenv("USER") + "/hive/warehouse";
         SparkSession spark = SparkSession.builder()
                 .master("local")
@@ -21,7 +20,7 @@ public class SimpleApp {
                 .getOrCreate();
         PrepareDB.execute(spark);
 
-        rulesParser.parseJoins();
+        rulesParser.parseAll();
         List<Join> joins = rulesParser.getJoins();
         ViewCreator.createViewAfterJoins(joins, spark);
 
