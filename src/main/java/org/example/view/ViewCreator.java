@@ -16,7 +16,11 @@ public class ViewCreator {
                 leftTable.col(joins.get(0).getEntityLeft()).equalTo(rightTable.col(joins.get(0).getEntityRight()))
                         .and(leftTable.col(joins.get(1).getEntityLeft()).equalTo(rightTable.col(joins.get(1).getEntityRight())))
                         .and(leftTable.col(joins.get(2).getEntityLeft()).equalTo(rightTable.col(joins.get(2).getEntityRight()))),
-                joins.get(0).getType());
+                joins.get(0).getType())
+                .drop(rightTable.col(joins.get(0).getEntityRight()))
+                .drop(rightTable.col(joins.get(1).getEntityRight()))
+                .drop(rightTable.col(joins.get(2).getEntityRight()));
+        joinedTable.show(10);
         joinedTable.createOrReplaceTempView("my_view");
     }
 }

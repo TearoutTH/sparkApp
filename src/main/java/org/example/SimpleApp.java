@@ -1,17 +1,12 @@
 package org.example;
-import org.apache.spark.sql.SparkSession;
-import org.example.parserUtils.Node;
-import org.example.util.Evaluate;
-import org.example.view.ViewCreator;
-import org.example.parserUtils.RuleParser;
-import org.example.parserUtils.Join;
-import org.example.util.PrepareDB;
 
-import javax.swing.text.View;
-import java.util.List;
+import org.apache.spark.sql.SparkSession;
+import org.example.parserUtils.RuleParser;
+import org.example.util.Evaluate;
+import org.example.util.PrepareDB;
+import org.example.view.ViewCreator;
 
 public class SimpleApp {
-    private static final RuleParser RULE_PARSER = new RuleParser();
     public static void main(String[] args) {
         String warehouseLocation = "/home/" + System.getenv("USER") + "/hive/warehouse";
         SparkSession spark = SparkSession.builder()

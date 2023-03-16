@@ -1,16 +1,13 @@
 package org.example.util;
 
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.*;
 import org.example.parserUtils.*;
-import org.stringtemplate.v4.ST;
-import scala.Function1;
+import org.json.JSONArray;
 
-import java.math.BigDecimal;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-
-import static org.apache.spark.sql.functions.col;
 
 public class Evaluate {
 
@@ -19,48 +16,106 @@ public class Evaluate {
         RuleParser.parseAll();
         rule = RuleParser.getRule();
         Node node = rule.getTree();
-        evaluateNode(node, spark);
+        Dataset<Row> result = evaluateNode(node, spark.table("my_view"));
+        result = result.filter("loss > " + 0).select("fid", "year", "quarter");
+        result.show(50);
+        String jsonString = result.toJSON().collectAsList().toString();
+        JSONArray jsonArray = new JSONArray(jsonString);
+        try (FileWriter fileWriter = new FileWriter("src/main/resources/result.json")) {
+            fileWriter.write(jsonArray.toString());
+        } catch (IOException e) {
+            System.err.println("Ошибка записи в файл: " + e.getMessage());
+        }
     }
 
-    private static void evaluateNode(Node node, SparkSession spark) {
+    private static Dataset<Row> evaluateNode(Node node, Dataset<Row> view) {
+        Dataset<Row> beginView = view;
         List<String> criteriasId = node.getCriteriasId();
         String operator = node.getOperator();
-        Dataset<Row> view = spark.table("my_view");
         view.show(10);
         List<Parameter> parameters = rule.getParameters();
-        if (operator.equals("AND")) {
-            boolean result = true;
-            for (String id:
-                 criteriasId) {
+        if (operator != null && operator.equals("AND")) {
+            for (String id :
+                    criteriasId) {
                 Criteria criteria = rule.getCriterias().stream().filter(c -> c.getId().equals(id)).findFirst().orElseThrow();
                 String value;
-                Dataset<Row> res;
+                String nameofColumn;
                 if (parameters.stream().anyMatch(parameter -> parameter.getName().equals(criteria.getParameter()))) {
                     Parameter param = parameters.stream().filter(parameter -> parameter.getName().equals(criteria.getParameter())).findFirst().get();
                     value = param.getValue();
-                    res = view.selectExpr(value + " as result");
-                    res.show();
+                    Column resultCol = functions.expr(value).as("result");
+                    view = view.select("*").withColumn("result", resultCol);
+                    nameofColumn = "result";
+                    view.show(15);
                 } else {
-                    value = null;
-                    res = null;
+                    nameofColumn = criteria.getParameter();
                 }
                 switch (criteria.getOperator()) {
                     case "lt": {
-                        view = view.withColumn("result",res.col("result"));
-                        view = view.filter("res" + "<" + criteria.getValue());
+                        view = view.filter(nameofColumn + "<" + criteria.getValue());
                         break;
                     }
                     case "gt": {
-                        view = view.withColumn("res", res.col("result")).filter("res" + ">" + criteria.getValue());
+                        view = view.filter(nameofColumn + ">" + criteria.getValue());
                         break;
                     }
                     case "eq": {
-                        view = view.withColumn("res", res.col("result")).filter("res" + "=" + criteria.getValue());
+                        view = view.filter(nameofColumn + "=" + criteria.getValue());
                         break;
                     }
                 }
+                view = view.drop("result");
                 view.show(10);
             }
+        } else if (operator != null && operator.equals("OR")) {
+            List<Dataset<Row>> listOfResults = new ArrayList<>();
+            for (String id :
+                    criteriasId) {
+                Criteria criteria = rule.getCriterias().stream().filter(c -> c.getId().equals(id)).findFirst().orElseThrow();
+                String value;
+                String nameofColumn;
+                if (parameters.stream().anyMatch(parameter -> parameter.getName().equals(criteria.getParameter()))) {
+                    Parameter param = parameters.stream().filter(parameter -> parameter.getName().equals(criteria.getParameter())).findFirst().get();
+                    value = param.getValue();
+                    Column resultCol = functions.expr(value).as("result");
+                    view = view.select("*").withColumn("result", resultCol);
+                    nameofColumn = "result";
+                    view.show(15);
+                } else {
+                    nameofColumn = criteria.getParameter();
+                }
+                switch (criteria.getOperator()) {
+                    case "lt": {
+                        view = view.filter(nameofColumn + "<" + criteria.getValue());
+                        view = view.drop("result");
+                        listOfResults.add(view);
+                        break;
+                    }
+                    case "gt": {
+                        view = view.filter(nameofColumn + ">" + criteria.getValue());
+                        view = view.drop("result");
+                        listOfResults.add(view);
+                        break;
+                    }
+                    case "eq": {
+                        view = view.filter(nameofColumn + "=" + criteria.getValue());
+                        view = view.drop("result");
+                        listOfResults.add(view);
+                        break;
+                    }
+                }
+            }
+            Dataset<Row> trueRes = listOfResults.get(0);
+            listOfResults.subList(1, listOfResults.size()).forEach(trueRes::union);
+            view = trueRes.distinct();
+            view.show(10);
+        } else {
+            view = view.withColumn("loss", functions.lit(node.getLoss()));
+            return view;
         }
+        Dataset<Row> trueResult = evaluateNode(node.getTrueChild(),view);
+        Dataset<Row> falseCriteria = beginView.except(view);
+        Dataset<Row> falseResult = evaluateNode(node.getFalseChild(), falseCriteria);
+        return trueResult.union(falseResult).distinct();
     }
 }

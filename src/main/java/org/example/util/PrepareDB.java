@@ -7,17 +7,12 @@ import org.apache.spark.sql.SparkSession;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Properties;
 
 public class PrepareDB {
-    private static Properties props = new Properties();
 
     public static void execute(SparkSession spark) {
-        // Create database
-//        spark.sql(String.format("DROP DATABASE IF EXISTS tmp_tos CASCADE"));
-//        spark.sql(String.format("DROP TABLE tmp_tos.vsa_nd_nds_r1"));
-//        spark.sql(String.format("REFRESH tmp_tos.vsa_nd_nds_r3"));
 
+        //Create database
         String dbName = "tmp_tos";
         spark.sql(String.format("CREATE DATABASE IF NOT EXISTS %s", dbName));
 
