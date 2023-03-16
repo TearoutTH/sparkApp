@@ -59,10 +59,15 @@ public class Node {
 
     @Override
     public String toString() {
-        return "{ id: " + id + "\n" +
-                "criterias: " + criteriasId.toString() + "\n"+
-                "operator: " + operator + "\n" +
-                "trueChild: " + trueChild.toString() + "\n" +
-                "falseChild: " + falseChild.toString() + "\n";
+        if (trueChild != null && falseChild != null) {
+            return "{ id: " + id + "\n" +
+                    "criterias: " + criteriasId.toString() + "\n" +
+                    "operator: " + operator + "\n" +
+                    "trueChild: " + trueChild.toString() + "\n" +
+                    "falseChild: " + falseChild.toString() + "} \n";
+        } else {
+            return "{ id: " + id + "\n" +
+                    "loss: " + loss + " }\n";
+        }
     }
 }

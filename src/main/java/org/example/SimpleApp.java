@@ -1,15 +1,17 @@
 package org.example;
 import org.apache.spark.sql.SparkSession;
+import org.example.parserUtils.Node;
+import org.example.util.Evaluate;
 import org.example.view.ViewCreator;
-import org.example.parserUtils.RulesParser;
+import org.example.parserUtils.RuleParser;
 import org.example.parserUtils.Join;
 import org.example.util.PrepareDB;
 
-import java.util.ArrayList;
+import javax.swing.text.View;
 import java.util.List;
 
 public class SimpleApp {
-    private static final RulesParser rulesParser = new RulesParser("src/main/resources/rule.json");
+    private static final RuleParser RULE_PARSER = new RuleParser();
     public static void main(String[] args) {
         String warehouseLocation = "/home/" + System.getenv("USER") + "/hive/warehouse";
         SparkSession spark = SparkSession.builder()
@@ -19,11 +21,9 @@ public class SimpleApp {
                 .config("spark.sql.catalogImplementation", "hive")
                 .getOrCreate();
         PrepareDB.execute(spark);
-
-        rulesParser.parseAll();
-        List<Join> joins = rulesParser.getJoins();
-        ViewCreator.createViewAfterJoins(joins, spark);
-
+        RuleParser.parseAll();
+        ViewCreator.createViewAfterJoins(RuleParser.getRule().getJoins(), spark);
+        Evaluate.evaluate(spark);
         spark.stop();
     }
 }

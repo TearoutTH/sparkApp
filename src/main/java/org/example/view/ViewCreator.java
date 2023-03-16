@@ -14,7 +14,7 @@ public class ViewCreator {
         Dataset<Row> rightTable = spark.table(joins.get(0).getTableRight());
         Dataset<Row> joinedTable = leftTable.join(rightTable,
                 leftTable.col(joins.get(0).getEntityLeft()).equalTo(rightTable.col(joins.get(0).getEntityRight()))
-                        .and(leftTable.col(joins.get(1).getEntityLeft()).equalTo(joins.get(1).getEntityRight()))
+                        .and(leftTable.col(joins.get(1).getEntityLeft()).equalTo(rightTable.col(joins.get(1).getEntityRight())))
                         .and(leftTable.col(joins.get(2).getEntityLeft()).equalTo(rightTable.col(joins.get(2).getEntityRight()))),
                 joins.get(0).getType());
         joinedTable.createOrReplaceTempView("my_view");

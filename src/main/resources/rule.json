@@ -97,9 +97,9 @@
     {
       "id": 103,
       "criterias": [
-        100,
+        102,
         101,
-        102
+        100
       ],
       "operator": "AND",
       "nodes": [

@@ -2,56 +2,41 @@ package org.example.parserUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-public class RulesParser {
-    private final String filePath;
-    JSONObject json;
-    private final List<Join> joins;
+public class RuleParser {
+    private static JSONObject json;
 
-    private final List<Variable> variables;
-
-    private final List<Parameter> parameters;
-
-    private final List<Criteria> criterias;
-
-    private Node tree;
+    private static Rule rule = new Rule();
 
     {
         readJson();
     }
 
-    public RulesParser(String filePath) {
-        this.filePath = filePath;
-        this.parameters = new ArrayList<>();
-        this.criterias = new ArrayList<>();
-        this.joins = new ArrayList<>();
-        this.variables = new ArrayList<>();
-        this.tree = null;
+    public static Rule getRule() {
+        return rule;
     }
 
-    public List<Join> getJoins() {
-        return joins;
-    }
-
-    private void readJson() {
+    private static void readJson() {
         String content;
         try {
-            content = new String(Files.readAllBytes(Paths.get(filePath)));
+            content = new String(Files.readAllBytes(Paths.get("src/main/resources/rule.json")));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         json = new JSONObject(content);
     }
 
-    private void parseJoins() {
+    private static void parseJoins() {
         JSONArray joinsJson = json.getJSONArray("joins");
-
+        List<Join> joins = new ArrayList<>();
         for (int i = 0; i < joinsJson.length(); i++) {
             JSONObject joinJson = joinsJson.getJSONObject(i);
             String tableLeft = joinJson.optString("table_left");
@@ -61,23 +46,24 @@ public class RulesParser {
             String type = joinJson.optString("type");
             joins.add(new Join(tableLeft, entityLeft, tableRight, entityRight, type));
         }
+        rule.setJoins(joins);
     }
 
-    private void parseVariables() {
+    private static void parseVariables() {
         JSONArray variablesJson = json.getJSONArray("variables");
-
+        List<Variable> variables = new ArrayList<>();
         for (int i = 0; i < variablesJson.length(); i++) {
             JSONObject variableJson = variablesJson.getJSONObject(i);
             String name = variableJson.optString("name");
             String type = variableJson.optString("type");
             variables.add(new Variable(name, type));
         }
+        rule.setVariables(variables);
     }
 
-    private void parseParameters() {
-
+    private static void parseParameters() {
         JSONArray paramsJson = json.getJSONArray("parameters");
-
+        List<Parameter> parameters = new ArrayList<>();
         for (int i = 0; i < paramsJson.length(); i++) {
             JSONObject paramJson = paramsJson.getJSONObject(i);
             String name = paramJson.optString("name");
@@ -85,12 +71,12 @@ public class RulesParser {
             String type = paramJson.optString("type");
             parameters.add(new Parameter(name, value, type));
         }
+        rule.setParameters(parameters);
     }
 
-    private void parseCriterias() {
-
+    private static void parseCriterias() {
         JSONArray criteriasJson = json.getJSONArray("criterias");
-
+        List<Criteria> criterias = new ArrayList<>();
         for (int i = 0; i < criteriasJson.length(); i++) {
             JSONObject criteriaJson = criteriasJson.getJSONObject(i);
             String id = criteriaJson.optString("id");
@@ -103,9 +89,10 @@ public class RulesParser {
                 criterias.add(new Criteria(id, parameter, operator, value));
             }
         }
+        rule.setCriterias(criterias);
     }
 
-    private void parseTree() {
+    private static void parseTree() {
         JSONArray treeJson = json.getJSONArray("tree");
         Map<String, Node> nodes = new LinkedHashMap<>();
         for (int i = 0; i < treeJson.length(); i++) {
@@ -116,18 +103,20 @@ public class RulesParser {
         for (Node n: nodes.values()) {
             if (n.getTrueChild() != null) {
                 Node kid = n.getTrueChild();
-                if (!n.getTrueChild().isLeaf() && n.getCriteriasId() == null) {
-                    n.setTrueChild(nodes.get(kid.getId()));
+                if (!kid.isLeaf() && kid.getCriteriasId() == null) {
+                    n.setTrueChild(nodes.get(kid.getId().substring(1)));
                 }
-                if (!n.getFalseChild().isLeaf() && n.getCriteriasId() == null) {
-                    n.setFalseChild(nodes.get(kid.getId()));
+                kid = n.getFalseChild();
+                if (!kid.isLeaf() && kid.getCriteriasId() == null) {
+                    n.setFalseChild(nodes.get(kid.getId().substring(1)));
                 }
             }
         }
-        tree = nodes.values().stream().findFirst().orElseThrow();
+        Node tree = nodes.values().stream().findFirst().orElseThrow();
+        rule.setTree(tree);
     }
 
-    private Node parseNode(JSONObject nodeJson) {
+    private static Node parseNode(JSONObject nodeJson) {
         if (!nodeJson.optString("operator").equals("")) {
             String id = nodeJson.optString("id");
             List<String> criteriasId = new ArrayList<>();
@@ -148,7 +137,7 @@ public class RulesParser {
         }
     }
 
-    public void parseAll() {
+    public static void parseAll() {
         parseJoins();
         parseVariables();
         parseParameters();
