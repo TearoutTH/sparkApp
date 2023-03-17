@@ -20,7 +20,6 @@ public class ViewCreator {
                 .drop(rightTable.col(joins.get(0).getEntityRight()))
                 .drop(rightTable.col(joins.get(1).getEntityRight()))
                 .drop(rightTable.col(joins.get(2).getEntityRight()));
-        joinedTable.show(10);
         joinedTable.createOrReplaceTempView("my_view");
     }
 }

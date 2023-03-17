@@ -16,7 +16,7 @@ public class RuleParser {
 
     private static Rule rule = new Rule();
 
-    {
+    static {
         readJson();
     }
 
@@ -27,9 +27,9 @@ public class RuleParser {
     private static void readJson() {
         String content;
         try {
-            content = new String(Files.readAllBytes(Paths.get("src/main/resources/rule.json")));
+            content = new String(Files.readAllBytes(Paths.get("/home/" + System.getenv("USER") + "/container/rule.json")));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Check /home/user/container folder, it seems there is no rule.json");
         }
         json = new JSONObject(content);
     }

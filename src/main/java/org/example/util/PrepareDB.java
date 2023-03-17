@@ -18,8 +18,8 @@ public class PrepareDB {
 
         // Create tables
         try {
-            spark.sql(String.join("\n", Files.readAllLines(Paths.get("src/main/resources/vsa_nd_nds_r1.sql"))));
-            spark.sql(String.join("\n", Files.readAllLines(Paths.get("src/main/resources/vsa_nd_nds_r3.sql"))));
+            spark.sql(String.join("\n", Files.readAllLines(Paths.get("/home/" + System.getenv("USER") + "/container/vsa_nd_nds_r1.sql"))));
+            spark.sql(String.join("\n", Files.readAllLines(Paths.get("/home/" + System.getenv("USER") + "/container/vsa_nd_nds_r3.sql"))));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -28,7 +28,7 @@ public class PrepareDB {
         if (spark.table("tmp_tos.vsa_nd_nds_r1").count() == 0) {
 
             String tableName = "tmp_tos.vsa_nd_nds_r1";
-            String inputPath = "src/main/resources/tmp_tos_vsa_nd_nds_r1_2.tsv";
+            String inputPath = "/home/" + System.getenv("USER") + "/container/tmp_tos_vsa_nd_nds_r1_2.tsv";
 
             Dataset<Row> ds = spark.read()
                     .format("csv")
@@ -45,7 +45,7 @@ public class PrepareDB {
         if (spark.table("tmp_tos.vsa_nd_nds_r3").count() == 0) {
 
             String tableName = "tmp_tos.vsa_nd_nds_r3";
-            String inputPath = "src/main/resources/tmp_tos_vsa_nd_nds_r3_2.tsv";
+            String inputPath = "/home/" + System.getenv("USER") + "/container/tmp_tos_vsa_nd_nds_r3_2.tsv";
 
             Dataset<Row> ds = spark.read()
                     .format("csv")
@@ -58,7 +58,5 @@ public class PrepareDB {
                     .format("orc")
                     .insertInto(tableName);
         }
-        spark.table("tmp_tos.vsa_nd_nds_r1").show(10);
-        spark.table("tmp_tos.vsa_nd_nds_r3").show(10);
     }
 }
